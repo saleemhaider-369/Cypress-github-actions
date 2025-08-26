@@ -12,44 +12,48 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browsers: [chrome, firefox, edge]
+        browser: [chrome, firefox, edge]
         spec:
-          [
-            cypress/e2e/login.cy.js,
-            cypress/e2e/cart.cy.js,
-            cypress/e2e/checkout.cy.js,
-          ]
+          - "cypress/e2e/login.cy.js"
+          - "cypress/e2e/cart.cy.js"
+          - "cypress/e2e/checkout.cy.js"
+
     steps:
+      # Checkout repo
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Setup Node.js with caching
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: "npm"
+          cache: npm
 
+      # Install deps (use npm ci for clean installs if lockfile exists)
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Run Cypress Tests on ${{ matrix.browsers }} - ${{ matrix.spec }}
-        run: npx cypress run --browser ${{ matrix.browsers }} --spec ${{ matrix.spec }} --env allure=true
+      # Run Cypress tests
+      - name: Run Cypress on ${{ matrix.browser }} - ${{ matrix.spec }}
+        run: npx cypress run --browser ${{ matrix.browser }} --spec "${{ matrix.spec }}" --env allure=true
 
-      # Upload Cypress artifacts (screenshots/videos) if tests fail
+      # Upload screenshots & videos if tests fail
       - name: Upload Test Artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: cypress-artifacts-${{ matrix.browsers }}-${{ matrix.spec }}
+          name: cypress-artifacts-${{ matrix.browser }}-${{ matrix.spec }}
           path: |
             cypress/screenshots
             cypress/videos
 
-      # Generate Allure Report
+      # Generate Allure report
       - name: Generate Allure report
         run: npx allure generate allure-results --clean -o allure-report
 
-      - name: Upload Allure report artifact
+      # Upload Allure report as artifact
+      - name: Upload Allure Report
         uses: actions/upload-artifact@v4
         with:
           name: allure-report
